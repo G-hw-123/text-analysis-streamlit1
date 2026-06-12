@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from snownlp import SnowNLP
 import numpy as np
-import os
+import requests
+from io import BytesIO
 
 # ===================== 页面全局配置 =====================
 st.set_page_config(page_title="多功能文本分析工具", page_icon="📊", layout="wide")
-# 统一全局中文字体（解决matplotlib中文乱码）
 plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei", "SimHei", "Microsoft YaHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
@@ -149,25 +149,21 @@ if analyze_btn:
             else:
                 st.info("当前文本过滤后无有效词汇，无法生成词频统计")
 
-        # 3. 词云图（【重点修复中文显示】本地 + 云端全兼容）
+        # 3. 词云图（【已修复：云端/本地通用】）
         if show_wordcloud:
             st.divider()
             st.subheader("3. 文本词云图")
             if filtered_words:
                 word_content = " ".join(filtered_words)
-                # 自适应字体：优先系统中文字体，云端自动兼容
-                font_path = None
-                # Windows 本地字体
-                if os.path.exists("C:/Windows/Fonts/simhei.ttf"):
-                    font_path = "C:/Windows/Fonts/simhei.ttf"
-                # Mac 本地字体
-                elif os.path.exists("/Library/Fonts/PingFang.ttc"):
-                    font_path = "/Library/Fonts/PingFang.ttc"
-                # Linux/Streamlit Cloud 自带中文字体
-                else:
-                    font_path = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+                # 云端自动下载思源黑体，解决字体找不到的问题
+                try:
+                    font_url = "https://github.com/lixianlin/simfang/raw/master/SourceHanSansCN-Regular.ttf"
+                    response = requests.get(font_url, timeout=10)
+                    font_path = BytesIO(response.content)
+                except Exception as e:
+                    st.warning("词云字体下载失败，使用默认字体，中文可能显示为方框")
+                    font_path = None
 
-                # 生成词云
                 wc = WordCloud(
                     font_path=font_path,
                     width=1000,
